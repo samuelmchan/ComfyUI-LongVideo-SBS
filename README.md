@@ -199,3 +199,27 @@ The development package was also regression-tested against the historical loader
 ## Third-party projects
 
 See [THIRD_PARTY.md](THIRD_PARTY.md).
+
+## License
+
+ComfyUI-LongVideo-SBS is distributed under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)**.
+
+See [LICENSE](LICENSE) for the full license text.
+
+Portions of the implementation are derived from or adapted from GPL-licensed ComfyUI components. Third-party software, models, checkpoints, and runtime dependencies retain their respective licenses.
+
+See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for additional attribution and licensing information.
+
+### Video Depth Anything model licensing
+
+This repository does **not** distribute Video Depth Anything model weights.
+
+At the time this documentation was written:
+
+* **Video Depth Anything Small** weights are licensed under Apache-2.0.
+* **Video Depth Anything Base** weights are licensed under CC BY-NC 4.0.
+* **Video Depth Anything Large** weights are licensed under CC BY-NC 4.0.
+
+The Base and Large model licenses therefore contain **non-commercial restrictions** that are separate from the GPL license covering this repository.
+
+The license for ComfyUI-LongVideo-SBS does not override or expand the rights granted by third-party model licenses. Users are responsible for complying with the license applicable to the models and dependencies they use.
