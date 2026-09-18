@@ -196,10 +196,6 @@ The development package was also regression-tested against the historical loader
 - It intentionally does not pin or replace PyTorch/ROCm, torchvision, xFormers, NumPy, or OpenCV. Those belong to the shared ComfyUI environment.
 - AI super-resolution is intentionally outside this package; the expected production order is typically upscale first, then 2D→3D, then interpolation.
 
-## Third-party projects
-
-See [THIRD_PARTY.md](THIRD_PARTY.md).
-
 ## License
 
 ComfyUI-LongVideo-SBS is distributed under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)**.
