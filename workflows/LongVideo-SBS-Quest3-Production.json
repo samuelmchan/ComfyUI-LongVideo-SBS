@@ -1,0 +1,1179 @@
+{
+  "id": "0a514832-a115-47a1-8a98-adebf7e2f1a3",
+  "revision": 1,
+  "last_node_id": 14,
+  "last_link_id": 58,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "VHS_BatchManager",
+      "pos": [
+        100,
+        130
+      ],
+      "size": [
+        244.1990203857422,
+        58
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "links": [
+            30,
+            33,
+            47
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "4ee72c065db22c9d96c2427954dc69e7b908444b",
+        "Node name for S&R": "VHS_BatchManager"
+      },
+      "widgets_values": {
+        "frames_per_batch": 44,
+        "count": 0
+      },
+      "widgets_values_named": {
+        "frames_per_batch": 44,
+        "count": 0
+      }
+    },
+    {
+      "id": 3,
+      "type": "LV_VDAModelLoader",
+      "pos": [
+        100,
+        318
+      ],
+      "size": [
+        311.29453125,
+        154
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "vda_model",
+          "type": "LV_VDA_MODEL",
+          "links": [
+            31
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_VDAModelLoader"
+      },
+      "widgets_values": [
+        "vitl",
+        "pytorch_sdpa",
+        "off",
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "encoder": "vitl",
+        "attention_backend": "pytorch_sdpa",
+        "compile_mode": "off",
+        "repo_path": "",
+        "checkpoint": ""
+      }
+    },
+    {
+      "id": 4,
+      "type": "LV_VDAStream",
+      "pos": [
+        1175.3888671875,
+        130
+      ],
+      "size": [
+        332.6978515625,
+        214
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "vda_model",
+          "type": "LV_VDA_MODEL",
+          "link": 31
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 32
+        },
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": 33
+        },
+        {
+          "name": "video_info",
+          "shape": 7,
+          "type": "VHS_VIDEOINFO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "synced_rgb",
+          "type": "IMAGE",
+          "links": [
+            34,
+            40,
+            48,
+            50,
+            56
+          ]
+        },
+        {
+          "name": "depth",
+          "type": "LV_DEPTH",
+          "links": [
+            35
+          ]
+        },
+        {
+          "name": "session",
+          "type": "LV_SESSION",
+          "links": [
+            36,
+            54,
+            58
+          ]
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_VDAStream"
+      },
+      "widgets_values": [
+        518,
+        false,
+        true,
+        "pipeline_2",
+        2
+      ],
+      "widgets_values_named": {
+        "input_size": 518,
+        "fp32": false,
+        "offload_model_when_finished": true,
+        "window_mode": "pipeline_2",
+        "preprocess_workers": 2
+      }
+    },
+    {
+      "id": 5,
+      "type": "LV_DepthTemporalNormalize",
+      "pos": [
+        1608.0867187499998,
+        450
+      ],
+      "size": [
+        343.2115234375,
+        194
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "rgb",
+          "type": "IMAGE",
+          "link": 34
+        },
+        {
+          "name": "depth",
+          "type": "LV_DEPTH",
+          "link": 35
+        },
+        {
+          "name": "session",
+          "type": "LV_SESSION",
+          "link": 36
+        }
+      ],
+      "outputs": [
+        {
+          "name": "normalized_depth",
+          "type": "LV_DEPTH",
+          "links": [
+            49
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_DepthTemporalNormalize"
+      },
+      "widgets_values": [
+        2,
+        98,
+        0.95,
+        0.2,
+        false
+      ],
+      "widgets_values_named": {
+        "low_percentile": 2,
+        "high_percentile": 98,
+        "ema": 0.95,
+        "scene_cut_threshold": 0.2,
+        "invert_depth": false
+      }
+    },
+    {
+      "id": 6,
+      "type": "LV_StereoDIBR",
+      "pos": [
+        3154.3248046875,
+        130
+      ],
+      "size": [
+        322.50546875,
+        286
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "rgb",
+          "type": "IMAGE",
+          "link": 40
+        },
+        {
+          "name": "normalized_depth",
+          "type": "LV_DEPTH",
+          "link": 41
+        },
+        {
+          "name": "max_disparity_eye_px",
+          "type": "FLOAT",
+          "widget": {
+            "name": "max_disparity_eye_px"
+          },
+          "link": 37
+        },
+        {
+          "name": "zero_parallax",
+          "type": "FLOAT",
+          "widget": {
+            "name": "zero_parallax"
+          },
+          "link": 38
+        },
+        {
+          "name": "max_fill_distance",
+          "type": "INT",
+          "widget": {
+            "name": "max_fill_distance"
+          },
+          "link": 39
+        }
+      ],
+      "outputs": [
+        {
+          "name": "left",
+          "type": "IMAGE",
+          "links": [
+            42
+          ]
+        },
+        {
+          "name": "right",
+          "type": "IMAGE",
+          "links": [
+            43
+          ]
+        },
+        {
+          "name": "left_holes",
+          "type": "MASK",
+          "links": null
+        },
+        {
+          "name": "right_holes",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_StereoDIBR"
+      },
+      "widgets_values": [
+        "half_sbs",
+        "zbuffer_async",
+        32,
+        0.0,
+        1,
+        true,
+        160,
+        "float16"
+      ],
+      "widgets_values_named": {
+        "output_mode": "half_sbs",
+        "renderer": "zbuffer_async",
+        "max_disparity_eye_px": 32,
+        "zero_parallax": 0.0,
+        "depth_gamma": 1,
+        "hole_fill": true,
+        "max_fill_distance": 160,
+        "cpu_output": "float16"
+      }
+    },
+    {
+      "id": 7,
+      "type": "LV_SBSCombine",
+      "pos": [
+        3576.8302734375,
+        130
+      ],
+      "size": [
+        277.3404296875,
+        78
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "left",
+          "type": "IMAGE",
+          "link": 42
+        },
+        {
+          "name": "right",
+          "type": "IMAGE",
+          "link": 43
+        }
+      ],
+      "outputs": [
+        {
+          "name": "sbs",
+          "type": "IMAGE",
+          "links": [
+            53
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_SBSCombine"
+      },
+      "widgets_values": [
+        false
+      ],
+      "widgets_values_named": {
+        "swap_eyes": false
+      }
+    },
+    {
+      "id": 8,
+      "type": "VHS_VideoInfoLoaded",
+      "pos": [
+        1175.3888671875,
+        474
+      ],
+      "size": [
+        237.6843719482422,
+        106
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "link": 44
+        }
+      ],
+      "outputs": [
+        {
+          "name": "fps🟦",
+          "type": "FLOAT",
+          "links": [
+            51
+          ]
+        },
+        {
+          "name": "frame_count🟦",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "duration🟦",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "width🟦",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "height🟦",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "4ee72c065db22c9d96c2427954dc69e7b908444b",
+        "Node name for S&R": "VHS_VideoInfoLoaded"
+      },
+      "widgets_values": {},
+      "widgets_values_named": {}
+    },
+    {
+      "id": 10,
+      "type": "LV_EdgeAwareDepthSmooth",
+      "pos": [
+        2128.4896484375,
+        130
+      ],
+      "size": [
+        366.3921875,
+        126
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "rgb",
+          "type": "IMAGE",
+          "link": 48
+        },
+        {
+          "name": "normalized_depth",
+          "type": "LV_DEPTH",
+          "link": 49
+        }
+      ],
+      "outputs": [
+        {
+          "name": "smoothed_depth",
+          "type": "LV_DEPTH",
+          "links": [
+            57
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_EdgeAwareDepthSmooth"
+      },
+      "widgets_values": [
+        0.14,
+        4,
+        0.8
+      ],
+      "widgets_values_named": {
+        "strength": 0.14,
+        "radius": 4,
+        "edge_protection": 0.8
+      }
+    },
+    {
+      "id": 12,
+      "type": "LV_RIFEModelLoader",
+      "pos": [
+        100,
+        602
+      ],
+      "size": [
+        311.800390625,
+        82
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "interp_model",
+          "type": "INTERP_MODEL",
+          "links": [
+            52
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_RIFEModelLoader"
+      },
+      "widgets_values": [
+        "auto",
+        true
+      ],
+      "widgets_values_named": {
+        "model": "auto",
+        "enable_rife": true
+      }
+    },
+    {
+      "id": 13,
+      "type": "LV_LongVideoFrameInterpolationStream",
+      "pos": [
+        3954.1707031250003,
+        130
+      ],
+      "size": [
+        366.2896484375,
+        410
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "interp_model",
+          "type": "INTERP_MODEL",
+          "link": 52
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 53
+        },
+        {
+          "name": "session",
+          "type": "LV_SESSION",
+          "link": 54
+        },
+        {
+          "name": "source_fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "source_fps"
+          },
+          "link": 51
+        }
+      ],
+      "outputs": [
+        {
+          "name": "stream",
+          "type": "LV_INTERP_STREAM",
+          "links": [
+            45
+          ]
+        },
+        {
+          "name": "output_fps",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_LongVideoFrameInterpolationStream"
+      },
+      "widgets_values": [
+        30,
+        120,
+        "full_sbs",
+        true,
+        0.22,
+        "float16",
+        1,
+        1,
+        8,
+        "async_pinned",
+        "async_pinned",
+        "off",
+        "adjacent",
+        "grid_reuse"
+      ],
+      "widgets_values_named": {
+        "source_fps": 30,
+        "target_fps": 120,
+        "stereo_mode": "full_sbs",
+        "scene_cut": true,
+        "scene_threshold": 0.22,
+        "cpu_output": "float16",
+        "timestep_batch": 1,
+        "pair_batch": 1,
+        "chunk_frames": 8,
+        "d2h_mode": "async_pinned",
+        "h2d_mode": "async_pinned",
+        "ifnet_profile": "off",
+        "feature_cache": "adjacent",
+        "warp_input_cache": "grid_reuse"
+      }
+    },
+    {
+      "id": 11,
+      "type": "LV_ResolutionStereoControls",
+      "pos": [
+        1608.0867187499998,
+        130
+      ],
+      "size": [
+        420.4029296875,
+        190
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "rgb",
+          "type": "IMAGE",
+          "link": 50
+        }
+      ],
+      "outputs": [
+        {
+          "name": "max_disparity_eye_px",
+          "type": "FLOAT",
+          "links": [
+            37
+          ]
+        },
+        {
+          "name": "max_fill_distance",
+          "type": "INT",
+          "links": [
+            39
+          ]
+        },
+        {
+          "name": "zero_parallax",
+          "type": "FLOAT",
+          "links": [
+            38,
+            55
+          ]
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_ResolutionStereoControls"
+      },
+      "widgets_values": [
+        "half_sbs",
+        1.4,
+        0.0,
+        3
+      ],
+      "widgets_values_named": {
+        "output_mode": "half_sbs",
+        "stereo_strength_percent": 1.4,
+        "zero_parallax": 0.0,
+        "hole_fill_multiplier": 3
+      }
+    },
+    {
+      "id": 14,
+      "type": "LV_DepthStereoTuning",
+      "pos": [
+        2594.8818359375,
+        130
+      ],
+      "size": [
+        459.44296875,
+        338
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "rgb",
+          "type": "IMAGE",
+          "link": 56
+        },
+        {
+          "name": "normalized_depth",
+          "type": "LV_DEPTH",
+          "link": 57
+        },
+        {
+          "name": "session",
+          "type": "LV_SESSION",
+          "link": 58
+        },
+        {
+          "name": "zero_parallax",
+          "type": "FLOAT",
+          "widget": {
+            "name": "zero_parallax"
+          },
+          "link": 55
+        }
+      ],
+      "outputs": [
+        {
+          "name": "tuned_depth",
+          "type": "LV_DEPTH",
+          "links": [
+            41
+          ]
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_DepthStereoTuning"
+      },
+      "widgets_values": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.15,
+        false,
+        "depth_edges",
+        0.15,
+        1,
+        0.04,
+        0.5
+      ],
+      "widgets_values_named": {
+        "zero_parallax": 0.0,
+        "depth_range_scale": 1.0,
+        "near_compression": 0.0,
+        "far_compression": 0.0,
+        "temporal_disparity_stability": 0.15,
+        "feather_enabled": false,
+        "feather_mode": "depth_edges",
+        "feather_strength": 0.15,
+        "feather_radius": 1,
+        "edge_threshold": 0.04,
+        "rgb_guidance": 0.5
+      }
+    },
+    {
+      "id": 9,
+      "type": "LV_StreamingVideoEncoder",
+      "pos": [
+        4420.4603515625,
+        130
+      ],
+      "size": [
+        388.7935546875,
+        434
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "stream",
+          "type": "LV_INTERP_STREAM",
+          "link": 45
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 46
+        },
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": 47
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_StreamingVideoEncoder"
+      },
+      "widgets_values": [
+        "halfsbs/",
+        "source_name",
+        " Half-SBS",
+        "av1_vaapi",
+        "10bit",
+        "vbr",
+        18,
+        24,
+        100,
+        135,
+        280,
+        "ultrafast",
+        "/dev/dri/renderD128",
+        "1",
+        "output"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "halfsbs/",
+        "filename_mode": "source_name",
+        "filename_suffix": " Half-SBS",
+        "codec": "av1_vaapi",
+        "bit_depth": "10bit",
+        "rate_control": "vbr",
+        "crf": 18,
+        "av1_qp": 24,
+        "bitrate_mbps": 100,
+        "maxrate_mbps": 135,
+        "bufsize_mbps": 280,
+        "software_preset": "ultrafast",
+        "vaapi_device": "/dev/dri/renderD128",
+        "queue_batches": "1",
+        "save_output": "output"
+      }
+    },
+    {
+      "id": 2,
+      "type": "LV_ProductionVideoLoader",
+      "pos": [
+        521.1334226497934,
+        130.41532153925624
+      ],
+      "size": [
+        563.5884765625,
+        306
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": 30
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            32
+          ]
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            46
+          ]
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": [
+            44
+          ]
+        },
+        {
+          "name": "decoder_status",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LV_ProductionVideoLoader"
+      },
+      "widgets_values": [
+        "input.mp4",
+        true,
+        0,
+        0,
+        0,
+        0,
+        "/dev/dri/renderD128",
+        1
+      ],
+      "widgets_values_named": {
+        "video": "input.mp4",
+        "hardware_decode": true,
+        "force_rate": 0,
+        "custom_width": 0,
+        "custom_height": 0,
+        "frame_load_cap": 0,
+        "vaapi_device": "/dev/dri/renderD128",
+        "prefetch_batches": 1
+      }
+    }
+  ],
+  "links": [
+    [
+      30,
+      1,
+      0,
+      2,
+      0,
+      "VHS_BatchManager"
+    ],
+    [
+      31,
+      3,
+      0,
+      4,
+      0,
+      "LV_VDA_MODEL"
+    ],
+    [
+      32,
+      2,
+      0,
+      4,
+      1,
+      "IMAGE"
+    ],
+    [
+      33,
+      1,
+      0,
+      4,
+      2,
+      "VHS_BatchManager"
+    ],
+    [
+      34,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      35,
+      4,
+      1,
+      5,
+      1,
+      "LV_DEPTH"
+    ],
+    [
+      36,
+      4,
+      2,
+      5,
+      2,
+      "LV_SESSION"
+    ],
+    [
+      37,
+      11,
+      0,
+      6,
+      2,
+      "FLOAT"
+    ],
+    [
+      38,
+      11,
+      2,
+      6,
+      3,
+      "FLOAT"
+    ],
+    [
+      39,
+      11,
+      1,
+      6,
+      4,
+      "INT"
+    ],
+    [
+      40,
+      4,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      41,
+      14,
+      0,
+      6,
+      1,
+      "LV_DEPTH"
+    ],
+    [
+      42,
+      6,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      43,
+      6,
+      1,
+      7,
+      1,
+      "IMAGE"
+    ],
+    [
+      44,
+      2,
+      3,
+      8,
+      0,
+      "VHS_VIDEOINFO"
+    ],
+    [
+      45,
+      13,
+      0,
+      9,
+      0,
+      "LV_INTERP_STREAM"
+    ],
+    [
+      46,
+      2,
+      2,
+      9,
+      1,
+      "AUDIO"
+    ],
+    [
+      47,
+      1,
+      0,
+      9,
+      2,
+      "VHS_BatchManager"
+    ],
+    [
+      48,
+      4,
+      0,
+      10,
+      0,
+      "IMAGE"
+    ],
+    [
+      49,
+      5,
+      0,
+      10,
+      1,
+      "LV_DEPTH"
+    ],
+    [
+      50,
+      4,
+      0,
+      11,
+      0,
+      "IMAGE"
+    ],
+    [
+      51,
+      8,
+      0,
+      13,
+      3,
+      "FLOAT"
+    ],
+    [
+      52,
+      12,
+      0,
+      13,
+      0,
+      "INTERP_MODEL"
+    ],
+    [
+      53,
+      7,
+      0,
+      13,
+      1,
+      "IMAGE"
+    ],
+    [
+      54,
+      4,
+      2,
+      13,
+      2,
+      "LV_SESSION"
+    ],
+    [
+      55,
+      11,
+      2,
+      14,
+      3,
+      "FLOAT"
+    ],
+    [
+      56,
+      4,
+      0,
+      14,
+      0,
+      "IMAGE"
+    ],
+    [
+      57,
+      10,
+      0,
+      14,
+      1,
+      "LV_DEPTH"
+    ],
+    [
+      58,
+      4,
+      2,
+      14,
+      2,
+      "LV_SESSION"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        -1529.1209485634095,
+        167.02688697643586
+      ]
+    },
+    "frontendVersion": "1.49.6",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true,
+    "longvideo_release": "v3.8.0 DEV3 — A/B Defaults + Explicit AV1 CQP",
+    "longvideo_notes": "Public workflow sanitized; source filename reset to input.mp4. Default encoder remains AV1 VAAPI 10-bit VBR 100/135/280; CQP is selectable in the encoder node."
+  },
+  "version": 0.4
+}

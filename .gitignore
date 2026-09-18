@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+.env
+.DS_Store
+*.mp4
+*.mkv
+*.mov
+*.webm
+*.pth
+*.pt
+*.safetensors

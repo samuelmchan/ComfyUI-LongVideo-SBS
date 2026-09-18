@@ -1,0 +1,7 @@
+# LongVideo SBS only owns these lightweight Python dependencies.
+#
+# IMPORTANT: do NOT install/upgrade torch, torchvision, xformers, NumPy, OpenCV,
+# or tqdm from this file. Those belong to the shared ComfyUI/ROCm environment
+# and may be constrained by other custom nodes.
+einops>=0.7
+easydict>=1.10
