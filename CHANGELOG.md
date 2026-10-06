@@ -1,5 +1,11 @@
 # Changelog
 
+## Loader fix — meta-batch EOF vs. container frame count
+
+- Fixed `RuntimeError: No frames generated` on the final meta-batch. `ffprobe` can over-report the frame count (AV1 commonly lists one trailing packet that yields no picture), and VHS turns that estimate into the meta-batch count. When the source's real decoded length was an exact multiple of `frames_per_batch`, VHS requested one batch too many and the loader raised instead of finishing.
+- The VAAPI loader generator now looks one frame ahead and pins `meta_batch.total_frames` to the decoder's actual EOF, so the stream finalizes on the real last frame. Both the prefetch and the synchronous decode paths are covered.
+- Added `tests/test_loader_eof.py` covering the over-reported-total case on both paths.
+
 ## v3.8.0 DEV3 — A/B Defaults + Explicit AV1 CQP
 
 - Promoted the latest A/B-tested workflow values:

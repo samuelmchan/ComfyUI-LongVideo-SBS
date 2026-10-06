@@ -186,6 +186,7 @@ Inside a working ComfyUI/PyTorch environment:
 ```bash
 PYTHONPATH=. python tests/test_dev3_cqp.py
 PYTHONPATH=. python tests/test_frame_interpolation_state.py
+PYTHONPATH=. python tests/test_loader_eof.py
 ```
 
 The development package was also regression-tested against the historical loader, encoder, VDA, DIBR, and RIFE test chain before this repository cleanup.

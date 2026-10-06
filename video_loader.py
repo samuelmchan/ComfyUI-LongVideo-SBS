@@ -445,27 +445,19 @@ def vaapi_frame_generator(video: str, force_rate: float, frame_load_cap: int,
             )
             prefetcher = _RawFramePrefetcher(proc, frame_bytes, prefetch_frames)
 
-            while True:
+            def _next_raw():
                 try:
-                    raw = prefetcher.get()
+                    return prefetcher.get()
                 except StopIteration:
-                    break
-                arr = np.frombuffer(raw, dtype=dtype).reshape(out_h, out_w, 3)
-                frame = arr.astype(np.float32)
-                frame *= (1.0 / denom)
-                control = yield frame
-                pbar.update(1)
-                # VHS BatchManager.close_inputs() sends a non-None value into live
-                # generators. Honor it so the background decoder cannot outlive a
-                # workflow reset/cancel.
-                if control is not None:
-                    break
+                    return None
         else:
             # Exact v3.3.1 synchronous path, retained for A/B testing/fallback.
-            stopped_early = False
-            buf = bytearray(frame_bytes)
-            view = memoryview(buf)
-            while True:
+            buffers = [bytearray(frame_bytes), bytearray(frame_bytes)]
+            views = [memoryview(b) for b in buffers]
+            cursor = [0]
+
+            def _next_raw():
+                view = views[cursor[0]]
                 offset = 0
                 while offset < frame_bytes:
                     n = proc.stdout.readinto(view[offset:])
@@ -475,30 +467,52 @@ def vaapi_frame_generator(video: str, force_rate: float, frame_load_cap: int,
                         break
                     offset += n
                 if offset == 0:
-                    break
+                    return None
                 if offset != frame_bytes:
                     err = b"" if proc.stderr is None else proc.stderr.read()
                     raise RuntimeError(
                         f"VAAPI decoder ended with a partial frame ({offset}/{frame_bytes} bytes): "
                         + err.decode("utf-8", errors="replace")
                     )
-                arr = np.frombuffer(buf, dtype=dtype).reshape(out_h, out_w, 3)
-                frame = arr.astype(np.float32)
-                frame *= (1.0 / denom)
-                control = yield frame
-                pbar.update(1)
-                if control is not None:
-                    stopped_early = True
-                    break
+                raw = buffers[cursor[0]]
+                cursor[0] = 1 - cursor[0]
+                return raw
 
-            if not stopped_early and proc.poll() is None:
-                rc = proc.wait()
-                if rc != 0:
-                    err = b"" if proc.stderr is None else proc.stderr.read()
-                    raise RuntimeError(
-                        f"FFmpeg VAAPI decoder exited with code {rc}: "
-                        + err.decode("utf-8", errors="replace")
-                    )
+        # Look one frame ahead so the decoder's EOF, not ffprobe's container
+        # estimate, is what tells VHS when the stream really ends. ffprobe can
+        # over-report (AV1 commonly lists one trailing packet that yields no
+        # picture), and VHS turns that metadata into the meta-batch count. Without
+        # this, the last batch exists but VHS still requests one more and
+        # load_video raises "No frames generated".
+        stopped_early = False
+        emitted = 0
+        current = _next_raw()
+        while current is not None:
+            nxt = _next_raw()
+            if nxt is None and meta_batch is not None:
+                meta_batch.total_frames = emitted + 1
+            arr = np.frombuffer(current, dtype=dtype).reshape(out_h, out_w, 3)
+            frame = arr.astype(np.float32)
+            frame *= (1.0 / denom)
+            control = yield frame
+            pbar.update(1)
+            emitted += 1
+            # VHS BatchManager.close_inputs() sends a non-None value into live
+            # generators. Honor it so the background decoder cannot outlive a
+            # workflow reset/cancel.
+            if control is not None:
+                stopped_early = True
+                break
+            current = nxt
+
+        if not stopped_early and proc.poll() is None:
+            rc = proc.wait()
+            if rc != 0:
+                err = b"" if proc.stderr is None else proc.stderr.read()
+                raise RuntimeError(
+                    f"FFmpeg VAAPI decoder exited with code {rc}: "
+                    + err.decode("utf-8", errors="replace")
+                )
     finally:
         if prefetcher is not None:
             prefetcher.close()
