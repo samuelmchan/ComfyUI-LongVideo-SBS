@@ -70,7 +70,7 @@ try:
         )
         raise AssertionError("x264 cqp should be rejected")
     except ValueError as exc:
-        assert "does not use the AV1 VAAPI CQP mode" in str(exc)
+        assert "does not expose the LongVideo cqp mode" in str(exc)
 finally:
     ps._ffmpeg_encoder_help = orig_help
 

@@ -272,8 +272,8 @@ def _luma_edge_magnitude(luma_bchw: torch.Tensor) -> torch.Tensor:
 def tune_depth_for_stereo(
     rgb: torch.Tensor,
     depth: torch.Tensor,
-    depth_range_scale: float = 0.90,
-    zero_parallax: float = 0.15,
+    depth_range_scale: float = 1.00,
+    zero_parallax: float = 0.00,
     near_compression: float = 0.0,
     far_compression: float = 0.0,
     feather_enabled: bool = False,
@@ -416,7 +416,7 @@ class LVDepthStereoTuning:
                 "temporal_disparity_stability": ("FLOAT", {
                     "default": 0.15, "min": 0.00, "max": 0.95, "step": 0.01,
                     "display": "slider",
-                    "tooltip": "Temporal stabilization of tuned depth immediately before DIBR. 0.00 = off; higher values retain more prior-frame depth.",
+                    "tooltip": "Temporal stabilization of tuned depth immediately before DIBR. 0.00 = off.",
                 }),
                 "feather_enabled": ("BOOLEAN", {"default": False}),
                 "feather_mode": (["depth_edges", "rgb_guided"], {"default": "depth_edges"}),
@@ -1074,14 +1074,16 @@ def _validate_advanced_encoder_settings(ffmpeg, codec, bit_depth, rate_control, 
             )
         if codec == "av1":
             if rate_control == "cqp":
-                raise ValueError("av1 does not use the AV1 VAAPI CQP mode; use constant_quality (CRF) or vbr")
+                raise ValueError("av1 does not expose the LongVideo cqp mode; use constant_quality (CRF) or vbr.")
             if rate_control == "lossless":
-                raise ValueError("Software av1 (libsvtav1) has no exposed lossless mode here; use constant_quality (CRF) or vbr")
+                raise ValueError(
+                    "Software av1 (libsvtav1) has no exposed lossless mode here; use constant_quality (CRF) or vbr."
+                )
             if rate_control == "constant_quality" and not (0.0 <= float(crf) <= 63.0):
                 raise ValueError("av1 CRF must be in the range 0..63")
         else:
             if rate_control == "cqp":
-                raise ValueError(f"{codec} does not use the AV1 VAAPI CQP mode; use constant_quality (CRF), lossless, or vbr")
+                raise ValueError(f"{codec} does not expose the LongVideo cqp mode; use constant_quality (CRF), lossless, or vbr.")
             if rate_control == "constant_quality" and not (0.0 <= float(crf) <= 51.0):
                 raise ValueError(f"{codec} CRF must be in the range 0..51")
     else:
@@ -1091,7 +1093,7 @@ def _validate_advanced_encoder_settings(ffmpeg, codec, bit_depth, rate_control, 
                 "use cqp (or legacy constant_quality) or vbr."
             )
         if rate_control in ("cqp", "constant_quality") and not (1 <= int(av1_qp) <= 255):
-            raise ValueError("av1_vaapi QP/global_quality must be in the range 1..255")
+            raise ValueError("av1_vaapi q_idx/global_quality must be in the range 1..255")
         if not vaapi_device:
             raise ValueError("VAAPI device path is empty")
         if not os.path.exists(vaapi_device):
@@ -1159,6 +1161,8 @@ def _build_advanced_video_ffmpeg_args(ffmpeg, frame_rate, width, height, video_p
                 "-maxrate", _fmt_mbps(maxrate_mbps),
                 "-bufsize", _fmt_mbps(bufsize_mbps),
             ]
+        elif rate_control == "cqp":
+            raise ValueError("x264 cqp mode is not implemented; use constant_quality (CRF), lossless, or vbr")
         args += ["-pix_fmt", target_fmt]
 
     elif codec == "x265":
@@ -1177,6 +1181,8 @@ def _build_advanced_video_ffmpeg_args(ffmpeg, frame_rate, width, height, video_p
                 "-maxrate", _fmt_mbps(maxrate_mbps),
                 "-bufsize", _fmt_mbps(bufsize_mbps),
             ]
+        elif rate_control == "cqp":
+            raise ValueError("x265 cqp mode is not implemented; use constant_quality (CRF), lossless, or vbr")
         args += ["-pix_fmt", target_fmt]
 
     elif codec == "av1":
@@ -1277,7 +1283,10 @@ class LVAsyncVideoEncoder:
                 "bit_depth": (ENCODER_BIT_DEPTHS, {"default": "10bit"}),
                 "rate_control": (ENCODER_RATE_CONTROLS, {"default": "lossless"}),
                 "crf": ("FLOAT", {"default": 18.0, "min": 0.0, "max": 51.0, "step": 0.5}),
-                "av1_qp": ("INT", {"default": 24, "min": 1, "max": 255, "step": 1, "tooltip": "AV1 VAAPI q_idx/global_quality for CQP. Lower = higher quality/larger files; higher = lower quality/smaller files."}),
+                "av1_qp": ("INT", {
+                    "default": 24, "min": 1, "max": 255, "step": 1,
+                    "tooltip": "AV1 VAAPI q_idx / global_quality for CQP. Lower = higher quality and larger files; higher = lower quality and smaller files.",
+                }),
                 "bitrate_mbps": ("FLOAT", {"default": 150.0, "min": 1.0, "max": 1000.0, "step": 1.0}),
                 "maxrate_mbps": ("FLOAT", {"default": 150.0, "min": 1.0, "max": 1000.0, "step": 1.0}),
                 "bufsize_mbps": ("FLOAT", {"default": 300.0, "min": 1.0, "max": 4000.0, "step": 1.0}),
@@ -1420,7 +1429,10 @@ class LVStreamingVideoEncoder:
                 "bit_depth": (ENCODER_BIT_DEPTHS, {"default": "10bit"}),
                 "rate_control": (ENCODER_RATE_CONTROLS, {"default": "vbr"}),
                 "crf": ("FLOAT", {"default": 18.0, "min": 0.0, "max": 51.0, "step": 0.5}),
-                "av1_qp": ("INT", {"default": 24, "min": 1, "max": 255, "step": 1, "tooltip": "AV1 VAAPI q_idx/global_quality for CQP. Lower = higher quality/larger files; higher = lower quality/smaller files."}),
+                "av1_qp": ("INT", {
+                    "default": 24, "min": 1, "max": 255, "step": 1,
+                    "tooltip": "AV1 VAAPI q_idx / global_quality for CQP. Lower = higher quality and larger files; higher = lower quality and smaller files.",
+                }),
                 "bitrate_mbps": ("FLOAT", {"default": 100.0, "min": 1.0, "max": 1000.0, "step": 1.0}),
                 "maxrate_mbps": ("FLOAT", {"default": 135.0, "min": 1.0, "max": 1000.0, "step": 1.0}),
                 "bufsize_mbps": ("FLOAT", {"default": 280.0, "min": 1.0, "max": 4000.0, "step": 1.0}),
@@ -1861,7 +1873,7 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "LV_EdgeAwareDepthSmooth": "LongVideo • Edge-Aware Depth Smooth",
-    "LV_DepthStereoTuning": "LongVideo • Stereo Comfort / Feather Tuning",
+    "LV_DepthStereoTuning": "LongVideo • Stereo Comfort / Feather Tuning (DEV3)",
     "LV_ResolutionStereoControls": "LongVideo • Resolution-Normalized 3D Controls",
     "LV_AsyncVideoEncoder": "LongVideo • Async Video Encoder",
     "LV_StreamingVideoEncoder": "LongVideo • RIFE Streaming Video Encoder",

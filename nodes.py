@@ -405,7 +405,7 @@ class LV_StereoDIBR:
                 "output_mode": (["half_sbs", "full_sbs"], {"default": "half_sbs"}),
                 "renderer": (["zbuffer_async", "zbuffer"], {"default": "zbuffer_async"}),
                 "max_disparity_eye_px": ("FLOAT", {"default": 32.0, "min": 0.0, "max": 160.0, "step": 1.0}),
-                "zero_parallax": ("FLOAT", {"default": 0.15, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "zero_parallax": ("FLOAT", {"default": 0.00, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "depth_gamma": ("FLOAT", {"default": 1.0, "min": 0.25, "max": 4.0, "step": 0.05}),
                 "hole_fill": ("BOOLEAN", {"default": True}),
                 "max_fill_distance": ("INT", {"default": 160, "min": 8, "max": 512, "step": 8}),
