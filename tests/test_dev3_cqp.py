@@ -5,16 +5,25 @@ from pathlib import Path
 
 import pipeline_support as ps
 from pipeline_support import (
+    ENCODER_CODECS,
     ENCODER_RATE_CONTROLS,
     LVDepthStereoTuning,
     LVResolutionStereoControls,
     LVStreamingVideoEncoder,
+    _CODEC_FFMPEG_ENCODERS,
+    _CODEC_SOURCE_FORMAT_LABELS,
     _build_advanced_video_ffmpeg_args,
     _validate_advanced_encoder_settings,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 WF = ROOT / "workflows" / "LongVideo-SBS-Quest3-Production.json"
+
+# Every advertised codec must resolve through the codec-keyed maps; a missing
+# key previously crashed encoder state creation with a bare KeyError.
+assert set(ENCODER_CODECS) <= set(_CODEC_FFMPEG_ENCODERS)
+assert set(ENCODER_CODECS) <= set(_CODEC_SOURCE_FORMAT_LABELS)
+assert "av1" in LVStreamingVideoEncoder.INPUT_TYPES()["required"]["codec"][0]
 
 # Node-schema defaults promoted from the user's A/B-tested workflow.
 ctrl = LVResolutionStereoControls.INPUT_TYPES()["required"]

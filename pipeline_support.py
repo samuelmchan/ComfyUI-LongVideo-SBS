@@ -650,6 +650,15 @@ _SVT_AV1_PRESETS = {
     "ultrafast": 13, "superfast": 12, "veryfast": 11, "faster": 10,
     "fast": 9, "medium": 8, "slow": 6, "slower": 4, "veryslow": 2,
 }
+# Codec-keyed lookups. These must cover every ENCODER_CODECS entry; a missing
+# key previously crashed encoder state creation with a bare KeyError.
+_CODEC_FFMPEG_ENCODERS = {
+    "x264": "libx264", "x265": "libx265", "av1_vaapi": "av1_vaapi", "av1": "libsvtav1",
+}
+_CODEC_SOURCE_FORMAT_LABELS = {
+    "x264": "video/h264-mp4", "x265": "video/h265-mp4",
+    "av1_vaapi": "video/av1-mp4", "av1": "video/av1-mp4",
+}
 _ENCODER_HELP_CACHE = {}
 
 
@@ -1064,7 +1073,7 @@ def _validate_advanced_encoder_settings(ffmpeg, codec, bit_depth, rate_control, 
     if software_preset not in SOFTWARE_PRESETS:
         raise ValueError(f"Unsupported software preset: {software_preset}")
 
-    encoder = {"x264": "libx264", "x265": "libx265", "av1_vaapi": "av1_vaapi", "av1": "libsvtav1"}[codec]
+    encoder = _CODEC_FFMPEG_ENCODERS[codec]
     help_text = _ffmpeg_encoder_help(ffmpeg, encoder)
 
     if codec in ("x264", "x265", "av1"):
@@ -1249,11 +1258,7 @@ class _AsyncAdvancedEncoderState(_AsyncEncoderState):
         self.bufsize_mbps = float(bufsize_mbps)
         self.software_preset = str(software_preset)
         self.vaapi_device = str(vaapi_device)
-        source_label = {
-            "x264": "video/h264-mp4",
-            "x265": "video/h265-mp4",
-            "av1_vaapi": "video/av1-mp4",
-        }[self.codec]
+        source_label = _CODEC_SOURCE_FORMAT_LABELS[self.codec]
         super().__init__(
             ffmpeg, frame_rate, width, height,
             "yuv420p10le" if self.bit_depth == "10bit" else "yuv420p",
@@ -1358,7 +1363,7 @@ class LVAsyncVideoEncoder:
                 _ENCODERS[key] = state
             quality_desc = (
                 "lossless" if rate_control == "lossless" else
-                (f"CRF={float(crf):g}" if rate_control == "constant_quality" and codec in ("x264", "x265")
+                (f"CRF={float(crf):g}" if rate_control == "constant_quality" and codec in ("x264", "x265", "av1")
                  else f"CQP q_idx={int(av1_qp)}" if codec == "av1_vaapi" and rate_control in ("cqp", "constant_quality")
                  else f"VBR={float(bitrate_mbps):g}/{float(maxrate_mbps):g}/{float(bufsize_mbps):g}M")
             )
