@@ -1,5 +1,11 @@
 # Changelog
 
+## Software AV1 encode option
+
+- Added an `av1` codec to the streaming/async encoders: software SVT-AV1 (`libsvtav1`) on CPU, alongside the existing hardware `av1_vaapi`.
+- Software AV1 supports `constant_quality` (CRF 0..63) and `vbr` (target bitrate only; libsvtav1 rejects `-maxrate`/`-bufsize` outside CRF mode). `cqp` and `lossless` are rejected.
+- Maps the shared `software_preset` names onto SVT-AV1 numeric presets (`ultrafast`=13 … `veryslow`=2).
+
 ## Loader fix — meta-batch EOF vs. container frame count
 
 - Fixed `RuntimeError: No frames generated` on the final meta-batch. `ffprobe` can over-report the frame count (AV1 commonly lists one trailing packet that yields no picture), and VHS turns that estimate into the meta-batch count. When the source's real decoded length was an exact multiple of `frames_per_batch`, VHS requested one batch too many and the loader raised instead of finishing.

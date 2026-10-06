@@ -1,6 +1,6 @@
 # Encoding
 
-The streaming encoder supports `x264`, `x265`, and `av1_vaapi`.
+The streaming encoder supports `x264`, `x265`, `av1_vaapi`, and `av1`.
 
 ## AV1 VAAPI
 
@@ -59,6 +59,15 @@ For x264/x265:
 - `lossless` uses the codec's lossless path;
 - `vbr` uses bitrate/maxrate/bufsize;
 - `cqp` is rejected because this UI's `cqp` mode is specifically the AV1 VAAPI q_idx path.
+
+### Software AV1 (`av1`)
+
+Choose `codec = av1` to encode AV1 on the CPU with SVT-AV1 (`libsvtav1`) instead of hardware `av1_vaapi`:
+
+- `constant_quality` uses `-crf` (0–63);
+- `vbr` targets `-b:v` only — libsvtav1 rejects `-maxrate`/`-bufsize` outside CRF mode;
+- `lossless` and `cqp` are rejected;
+- `software_preset` maps the x264-style names onto SVT-AV1 numeric presets (`ultrafast`=13 … `veryslow`=2), since libsvtav1 uses `-preset 0..13`.
 
 ## Color path
 

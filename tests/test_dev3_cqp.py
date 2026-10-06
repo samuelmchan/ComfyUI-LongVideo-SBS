@@ -74,6 +74,36 @@ try:
 finally:
     ps._ffmpeg_encoder_help = orig_help
 
+# Software AV1 codec (libsvtav1): CPU SVT-AV1, numeric presets, CRF/VBR only.
+sw_crf = _build_advanced_video_ffmpeg_args(
+    "ffmpeg", 120.0, 3840, 2160, "/tmp/out.mp4",
+    "av1", "10bit", "constant_quality", 30.0, 24,
+    100.0, 135.0, 280.0, "medium", "/dev/dri/renderD128",
+)
+assert sw_crf[sw_crf.index("-c:v") + 1] == "libsvtav1"
+assert sw_crf[sw_crf.index("-preset") + 1] == "8"
+assert sw_crf[sw_crf.index("-crf") + 1] == "30"
+assert "-init_hw_device" not in sw_crf
+
+sw_vbr = _build_advanced_video_ffmpeg_args(
+    "ffmpeg", 120.0, 3840, 2160, "/tmp/out.mp4",
+    "av1", "8bit", "vbr", 18.0, 24,
+    100.0, 135.0, 280.0, "fast", "/dev/dri/renderD128",
+)
+assert sw_vbr[sw_vbr.index("-b:v") + 1] == "100M"
+assert "-maxrate" not in sw_vbr and "-bufsize" not in sw_vbr
+
+for rejected in ("lossless", "cqp"):
+    try:
+        _build_advanced_video_ffmpeg_args(
+            "ffmpeg", 120.0, 3840, 2160, "/tmp/out.mp4",
+            "av1", "10bit", rejected, 18.0, 24,
+            100.0, 135.0, 280.0, "medium", "/dev/dri/renderD128",
+        )
+        raise AssertionError(f"software av1 must reject {rejected}")
+    except ValueError:
+        pass
+
 # Authoritative workflow regression + public sanitization.
 wf = json.loads(WF.read_text())
 assert wf["extra"]["longvideo_release"].startswith("v3.8.0 DEV3")

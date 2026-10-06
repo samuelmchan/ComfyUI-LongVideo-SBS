@@ -30,7 +30,7 @@ flowchart LR
 - **Z-buffer DIBR:** visibility-aware left/right rendering with hole filling.
 - **RIFE 4.25 streaming:** state persists across meta-batches; interpolation can be manually disabled and automatically bypasses when source cadence is already effectively at target FPS.
 - **Hardware/software decode toggle:** FFmpeg VAAPI or FFmpeg software decode.
-- **Streaming encode:** AV1 VAAPI, x264, or x265 without buffering the whole result.
+- **Streaming encode:** hardware AV1 VAAPI, or software x264 / x265 / AV1 (SVT-AV1) without buffering the whole result.
 - **AV1 CQP + VBR:** explicit VAAPI CQP mode while preserving legacy workflows that used `constant_quality` for AV1.
 - **Human-readable output names:** `output/halfsbs/<source> Half-SBS.mp4`.
 
@@ -62,6 +62,8 @@ The current A/B-tested defaults are:
 | Output | `output/halfsbs/<source> Half-SBS.mp4` |
 
 The workflow is shipped with a generic `input.mp4` placeholder; select your own source file in the loader.
+
+The encoder `codec` can be switched to `x264`, `x265`, or software AV1 (`av1`, SVT-AV1 on CPU) when hardware AV1 VAAPI is unavailable. See [docs/ENCODING.md](docs/ENCODING.md).
 
 ## Stereo strength: what the percentage means
 

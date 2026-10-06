@@ -640,10 +640,16 @@ def _bulk_u8_cpu(images: torch.Tensor):
 
 
 ENCODER_PRESETS = ["lossless_x264_qp0", "av1_vaapi_150m_10bit"]
-ENCODER_CODECS = ["x264", "x265", "av1_vaapi"]
+ENCODER_CODECS = ["x264", "x265", "av1_vaapi", "av1"]
 ENCODER_BIT_DEPTHS = ["10bit", "8bit"]
 ENCODER_RATE_CONTROLS = ["lossless", "constant_quality", "cqp", "vbr"]
 SOFTWARE_PRESETS = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"]
+# The software AV1 codec (libsvtav1) uses numeric presets 0..13 (higher = faster)
+# rather than the x264/x265-style names, so map the shared preset names onto them.
+_SVT_AV1_PRESETS = {
+    "ultrafast": 13, "superfast": 12, "veryfast": 11, "faster": 10,
+    "fast": 9, "medium": 8, "slow": 6, "slower": 4, "veryslow": 2,
+}
 _ENCODER_HELP_CACHE = {}
 
 
@@ -1058,18 +1064,26 @@ def _validate_advanced_encoder_settings(ffmpeg, codec, bit_depth, rate_control, 
     if software_preset not in SOFTWARE_PRESETS:
         raise ValueError(f"Unsupported software preset: {software_preset}")
 
-    encoder = {"x264": "libx264", "x265": "libx265", "av1_vaapi": "av1_vaapi"}[codec]
+    encoder = {"x264": "libx264", "x265": "libx265", "av1_vaapi": "av1_vaapi", "av1": "libsvtav1"}[codec]
     help_text = _ffmpeg_encoder_help(ffmpeg, encoder)
 
-    if codec in ("x264", "x265"):
+    if codec in ("x264", "x265", "av1"):
         if bit_depth == "10bit" and "yuv420p10le" not in help_text:
             raise RuntimeError(
                 f"Selected {codec} 10-bit, but this FFmpeg/{encoder} build does not advertise yuv420p10le."
             )
-        if rate_control == "cqp":
-            raise ValueError(f"{codec} does not use the AV1 VAAPI CQP mode; use constant_quality (CRF), lossless, or vbr")
-        if rate_control == "constant_quality" and not (0.0 <= float(crf) <= 51.0):
-            raise ValueError(f"{codec} CRF must be in the range 0..51")
+        if codec == "av1":
+            if rate_control == "cqp":
+                raise ValueError("av1 does not use the AV1 VAAPI CQP mode; use constant_quality (CRF) or vbr")
+            if rate_control == "lossless":
+                raise ValueError("Software av1 (libsvtav1) has no exposed lossless mode here; use constant_quality (CRF) or vbr")
+            if rate_control == "constant_quality" and not (0.0 <= float(crf) <= 63.0):
+                raise ValueError("av1 CRF must be in the range 0..63")
+        else:
+            if rate_control == "cqp":
+                raise ValueError(f"{codec} does not use the AV1 VAAPI CQP mode; use constant_quality (CRF), lossless, or vbr")
+            if rate_control == "constant_quality" and not (0.0 <= float(crf) <= 51.0):
+                raise ValueError(f"{codec} CRF must be in the range 0..51")
     else:
         if rate_control == "lossless":
             raise ValueError(
@@ -1165,6 +1179,24 @@ def _build_advanced_video_ffmpeg_args(ffmpeg, frame_rate, width, height, video_p
             ]
         args += ["-pix_fmt", target_fmt]
 
+    elif codec == "av1":
+        target_fmt = "yuv420p10le" if bit_depth == "10bit" else "yuv420p"
+        args += [
+            "-vf", f"scale=out_color_matrix=bt709:out_range=tv,format={target_fmt}",
+            "-c:v", "libsvtav1", "-preset", str(_SVT_AV1_PRESETS[str(software_preset)]),
+        ]
+        if rate_control == "constant_quality":
+            args += ["-crf", str(int(round(float(crf))))]
+        elif rate_control == "vbr":
+            # libsvtav1 rejects -maxrate/-bufsize in VBR mode ("Max Bitrate only
+            # supported with CRF mode"), so software AV1 VBR targets -b:v only.
+            args += ["-b:v", _fmt_mbps(bitrate_mbps)]
+        elif rate_control == "lossless":
+            raise ValueError("software av1 lossless mode is not supported by the production encoder UI")
+        elif rate_control == "cqp":
+            raise ValueError("av1 cqp mode is not implemented; use constant_quality (CRF) or vbr")
+        args += ["-pix_fmt", target_fmt]
+
     elif codec == "av1_vaapi":
         target_fmt = "p010le" if bit_depth == "10bit" else "nv12"
         args += [
@@ -1241,7 +1273,7 @@ class LVAsyncVideoEncoder:
                 "images": ("IMAGE",),
                 "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 240.0, "step": 0.001}),
                 "filename_prefix": ("STRING", {"default": "halfsbs/vr"}),
-                "codec": (ENCODER_CODECS, {"default": "x264"}),
+                "codec": (ENCODER_CODECS, {"default": "x264", "tooltip": "x264 / x265: software (CPU). av1: software SVT-AV1 (CPU). av1_vaapi: hardware AV1 (VAAPI)."}),
                 "bit_depth": (ENCODER_BIT_DEPTHS, {"default": "10bit"}),
                 "rate_control": (ENCODER_RATE_CONTROLS, {"default": "lossless"}),
                 "crf": ("FLOAT", {"default": 18.0, "min": 0.0, "max": 51.0, "step": 0.5}),
@@ -1384,7 +1416,7 @@ class LVStreamingVideoEncoder:
                 "filename_prefix": ("STRING", {"default": "halfsbs/", "tooltip": "Output subfolder in source_name mode; no filename prefix is added. Example: halfsbs/"}),
                 "filename_mode": (["custom", "source_name"], {"default": "source_name"}),
                 "filename_suffix": ("STRING", {"default": " Half-SBS"}),
-                "codec": (ENCODER_CODECS, {"default": "av1_vaapi"}),
+                "codec": (ENCODER_CODECS, {"default": "av1_vaapi", "tooltip": "x264 / x265: software (CPU). av1: software SVT-AV1 (CPU). av1_vaapi: hardware AV1 (VAAPI)."}),
                 "bit_depth": (ENCODER_BIT_DEPTHS, {"default": "10bit"}),
                 "rate_control": (ENCODER_RATE_CONTROLS, {"default": "vbr"}),
                 "crf": ("FLOAT", {"default": 18.0, "min": 0.0, "max": 51.0, "step": 0.5}),
