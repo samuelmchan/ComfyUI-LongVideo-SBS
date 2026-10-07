@@ -620,7 +620,9 @@ def _bulk_rgb_cpu(images: torch.Tensor, bit_depth="8bit"):
         raise ValueError(f"Expected IMAGE BxHxWx3/4, got {tuple(images.shape)}")
     images = images[..., :3]
     if str(bit_depth) == "10bit":
-        out = images.clamp(0, 1).mul(65535.0).add_(0.5).to(torch.uint16)
+        # Scale in float32: float16 cannot represent 65535 (max 65504), so
+        # near-white pixels overflow to inf and corrupt the uint16 buffer.
+        out = (images.clamp(0, 1).float() * 65535.0 + 0.5).to(torch.uint16)
         raw_pix_fmt = "rgb48le"
     elif str(bit_depth) == "8bit":
         out = images.clamp(0, 1).mul(255.0).add_(0.5).to(torch.uint8)
