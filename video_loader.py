@@ -150,6 +150,7 @@ class VideoProbe:
     pix_fmt: str
     codec_name: str
     ten_bit: bool
+    color_space: str = "unknown"
 
 
 _VHS_REQUIRED_ATTRS = (
@@ -293,7 +294,20 @@ def probe_video(video: str, ffmpeg_path: str | None = None) -> VideoProbe:
     codec_name = str(st.get("codec_name") or "unknown").lower()
     # ffprobe formats are normally yuv420p10le/p010le for 10-bit consumer video.
     ten_bit = any(token in pix_fmt for token in ("10", "12", "16", "p010", "p012", "p016"))
-    return VideoProbe(width, height, fps, duration, total_frames, pix_fmt, codec_name, ten_bit)
+    color_space = str(st.get("color_space") or "unknown").lower()
+    return VideoProbe(width, height, fps, duration, total_frames, pix_fmt, codec_name, ten_bit, color_space)
+
+
+def _decode_color_args(probe: VideoProbe) -> list[str]:
+    """Force BT.709 YUV->RGB on decode for untagged sources.
+
+    FFmpeg defaults an untagged YUV source to a BT.601 matrix, which hue-shifts
+    saturated colours (e.g. a magenta LED) and leaves chroma that the DIBR and
+    encoder turn into green speckles. HD/4K sources are BT.709 in practice.
+    """
+    if str(probe.color_space) in ("", "unknown", "unspecified", "reserved"):
+        return ["-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv"]
+    return []
 
 
 def _download_format(probe: VideoProbe) -> tuple[str, str, np.dtype, int]:
@@ -344,6 +358,7 @@ def build_vaapi_command(video: str, vaapi_device: str, probe: VideoProbe,
         ffmpeg_path, "-hide_banner", "-loglevel", "error", "-nostdin",
         "-hwaccel", "vaapi", "-hwaccel_device", vaapi_device,
         "-hwaccel_output_format", "vaapi",
+        *_decode_color_args(probe),
         "-i", video, "-map", "0:v:0", "-an", "-sn", "-dn",
         "-vf", ",".join(filters), "-pix_fmt", raw_fmt,
     ]
@@ -372,6 +387,7 @@ def preflight_vaapi(video: str, vaapi_device: str, probe: VideoProbe | None = No
         ffmpeg_path, "-hide_banner", "-loglevel", "error", "-nostdin",
         "-hwaccel", "vaapi", "-hwaccel_device", vaapi_device,
         "-hwaccel_output_format", "vaapi",
+        *_decode_color_args(probe),
         "-i", video, "-map", "0:v:0", "-an", "-sn", "-dn",
         "-vf", ",".join(filters[:-1]), "-frames:v", "1", "-f", "null", "-",
     ]
