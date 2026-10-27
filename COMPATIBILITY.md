@@ -61,11 +61,12 @@ Run this on **each** deployment, in order:
 
 ## CI
 
-`.github/workflows/validate.yml` runs the static check against a pinned ComfyUI
-tag plus `master`:
+Not wired into CI. ComfyUI upgrades here are deliberate and infrequent, on two
+known deployments, and the `--runtime` check above is strictly stronger than
+anything CI could run (real imports against the real environment, rather than
+AST parsing). So the check is run manually as part of the upgrade procedure
+instead of on every push.
 
-- the **pinned tag** must match what the deployments run, and is blocking;
-- **`master`** is advisory (`continue-on-error`) — it is the early warning for
-  an upcoming release breaking this pack.
-
-Bump the pinned tag in the matrix at the same time as the deployments.
+If this repo starts taking outside contributions, the static check is a cheap
+pre-merge gate — a `--depth 1` ComfyUI clone plus parsing, no torch, a few
+seconds per leg. It is not a substitute for the runtime check after an upgrade.
